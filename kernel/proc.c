@@ -681,3 +681,24 @@ procdump(void)
     printf("\n");
   }
 }
+
+int
+sysinfo(int param)
+{
+  if (param == 0) { // Num active processes
+    struct proc *p;
+    int numActiveProcesses = 0;
+    for(p = proc; p < &proc[NPROC]; p++) {
+      if (p->state == ZOMBIE || p->state == RUNNING || p->state == RUNNABLE) {
+        numActiveProcesses++;
+      }
+    }
+    return numActiveProcesses;
+  } else if (param == 1) {  // Num syscalls since boot
+    return getNumSysCall();
+  } else if (param == 2) {  // Num free pages
+    return getNumFreePages();
+  } else {
+    return -1;
+  }
+}

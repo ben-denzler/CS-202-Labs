@@ -23,6 +23,21 @@ struct {
   struct run *freelist;
 } kmem;
 
+int
+getNumFreePages() 
+{
+  int numFreePages = 0;
+  struct run *r;
+  acquire(&kmem.lock);
+  r = kmem.freelist;
+  while (r) {
+    numFreePages++;
+    r = r->next;
+  }
+  release(&kmem.lock);
+  return numFreePages;
+}
+
 void
 kinit()
 {

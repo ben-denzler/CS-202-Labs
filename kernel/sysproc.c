@@ -89,3 +89,11 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 
+sys_sysinfo(void)
+{
+  int p;
+  argint(0, &p);
+  return sysinfo(p);
+}
