@@ -110,6 +110,7 @@ extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
 extern uint64 sys_sysinfo(void);
+extern uint64 sys_procinfo(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -136,6 +137,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_sysinfo] sys_sysinfo,
+[SYS_procinfo] sys_procinfo,
 };
 
 void
@@ -155,4 +157,5 @@ syscall(void)
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
+  p->syscall_count++;
 }

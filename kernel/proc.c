@@ -35,7 +35,7 @@ proc_mapstacks(pagetable_t kpgtbl)
   struct proc *p;
   
   for(p = proc; p < &proc[NPROC]; p++) {
-    char *pa = kalloc();
+    char *pa = kalloc() ;
     if(pa == 0)
       panic("kalloc");
     uint64 va = KSTACK((int) (p - proc));
@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->syscall_count = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -698,7 +699,23 @@ sysinfo(int param)
     return getNumSysCall();
   } else if (param == 2) {  // Num free pages
     return getNumFreePages();
-  } else {
-    return -1;
   }
+  return -1;
+}
+
+int
+procinfo(struct pinfo *in)
+{
+  struct pinfo pi;
+  
+  if (in) {
+    struct proc *p = myproc();
+    pi.ppid = p->parent->pid;
+    pi.syscall_count = p->syscall_count;
+    pi.page_usage = (3 * p->sz) / 10000;
+    if (copyout(p->pagetable, (uint64)in, (char *)&pi, sizeof(pi)) >= 0) {
+      return 0;
+    }
+  }
+  return -1;
 }

@@ -1,3 +1,9 @@
+struct pinfo {
+  int ppid;
+  int syscall_count;
+  int page_usage;
+};
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -84,6 +90,8 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Per-process state
 struct proc {
   struct spinlock lock;
+
+  int syscall_count;          // # of system calls by this process
 
   // p->lock must be held when using these:
   enum procstate state;        // Process state

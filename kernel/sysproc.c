@@ -97,3 +97,11 @@ sys_sysinfo(void)
   argint(0, &p);
   return sysinfo(p);
 }
+
+uint64
+sys_procinfo(void)
+{
+  uint64 n;
+  argaddr(0, &n);
+  return procinfo((struct pinfo *)n);
+}
