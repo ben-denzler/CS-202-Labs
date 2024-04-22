@@ -708,7 +708,7 @@ procinfo(struct pinfo *in)
 {
   struct pinfo pi;
   
-  if (in) {
+  if (in) { // pinfo must not be null/uninitialized
     struct proc *p = myproc();
     pi.ppid = p->parent->pid;
     pi.syscall_count = p->syscall_count;

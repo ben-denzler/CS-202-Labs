@@ -143,7 +143,6 @@ static uint64 (*syscalls[])(void) = {
 void
 syscall(void)
 {
-  numSysCalls++;
   int num;
   struct proc *p = myproc();
 
@@ -157,5 +156,6 @@ syscall(void)
             p->pid, p->name, num);
     p->trapframe->a0 = -1;
   }
+  numSysCalls++;
   p->syscall_count++;
 }
