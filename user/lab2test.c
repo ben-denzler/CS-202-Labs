@@ -19,6 +19,7 @@ int main(int argc, char * argv[]) {
     ret = fork();
     if (ret == 0) { // child process
       malloc(4096); // this triggers a syscall
+      sched_tickets(500);
       while (1);
     } else { // parent
       continue;

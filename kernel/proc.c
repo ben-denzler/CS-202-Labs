@@ -493,6 +493,19 @@ sched_statistics(void)
   return 0;
 }
 
+int
+sched_tickets(int ticketVal)
+{
+  struct proc *p = myproc();
+  if (ticketVal <= 10000) {
+    p->tickets = ticketVal;
+  }
+  else {
+    p->tickets = 10000;
+  }
+  return 0;
+}
+
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this

@@ -111,3 +111,11 @@ sys_sched_statistics(void)
 {
   return sched_statistics();
 }
+
+uint64
+sys_sched_tickets(void)
+{
+  int p;
+  argint(0, &p);
+  return sched_tickets(p);
+}

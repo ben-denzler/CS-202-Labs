@@ -111,6 +111,7 @@ void            procdump(void);
 int             sysinfo(int);
 int             procinfo(struct pinfo*);
 int             sched_statistics(void);
+int             sched_tickets(int);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
