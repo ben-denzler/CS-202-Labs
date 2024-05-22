@@ -536,26 +536,15 @@ unsigned short rand() {
 
       // Find process with minimum pass
       if (minp) {
-        acquire(&minp->lock);
         for(p = proc; p < &proc[NPROC]; p++) {
-          if (minp != p) {
-            int alreadyReleasedP = 0;
-            acquire(&p->lock);
-            if(p->state == RUNNABLE) {
-              if (p->pass < minp->pass) {
-                release(&minp->lock);
-                minp = p;
-                release(&p->lock);
-                alreadyReleasedP = 1;
-                acquire(&minp->lock);
-              }
+          acquire(&p->lock);
+          if(p->state == RUNNABLE && (p->pass < minp->pass)) {
+              minp = p;
             }
-            if(!alreadyReleasedP) {
-              release(&p->lock);
-            }
-          }
+          release(&p->lock);
         }
 
+        acquire(&minp->lock);
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
