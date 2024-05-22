@@ -125,7 +125,7 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->syscall_count = 0;
-  p->tickets = 10000;
+  p->tickets = 5000;
   p->stride = 10000 / p->tickets;
   p->pass = 10000 / p->tickets;
   p->ticks = 0;
@@ -485,7 +485,7 @@ unsigned short rand() {
       for(p = proc; p < &proc[NPROC]; p++) {
         acquire(&p->lock);
         if(p->state == RUNNABLE) {
-          if (chosenTicket <= (p->tickets + startingRange)) {
+          if (chosenTicket < (p->tickets + startingRange)) {
             // Switch to chosen process.  It is the process's job
             // to release its lock and then reacquire it
             // before jumping back to us.
