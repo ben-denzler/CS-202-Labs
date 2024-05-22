@@ -437,6 +437,15 @@ wait(uint64 addr)
   }
 }
 
+// pseudo random generator (https://stackoverflow.com/a/7603688)
+unsigned short lfsr = 0xACE1u;
+unsigned short bit;
+
+unsigned short rand() {
+  bit = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5)) & 1;
+  return lfsr = (lfsr >> 1) | (bit << 15);
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -444,36 +453,122 @@ wait(uint64 addr)
 //  - swtch to start running that process.
 //  - eventually that process transfers control
 //    via swtch back to the scheduler.
-void
-scheduler(void)
-{
-  struct proc *p;
-  struct cpu *c = mycpu();
-  
-  c->proc = 0;
-  for(;;){
-    // Avoid deadlock by ensuring that devices can interrupt.
-    intr_on();
-
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        p->ticks++;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
+#if defined(LOTTERY)
+  void
+  scheduler(void)
+  {
+    
+    struct proc *p;
+    struct cpu *c = mycpu();
+    
+    c->proc = 0;
+    for(;;){
+      // Avoid deadlock by ensuring that devices can interrupt.
+      intr_on();
+      // Loop through all RUNNABLE processes and get total num of tickets
+      int totalTickets = 0;
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          totalTickets += p->tickets;
+        }
       }
-      release(&p->lock);
+
+      // Choose a random ticket to run, range: 0 to totalTickets
+      int chosenTicket = (int)rand() % totalTickets;
+
+      // Schedule the chosenTicket
+      int startingRange = 0;
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          if (chosenTicket <= (p->tickets + startingRange)) {
+            // Switch to chosen process.  It is the process's job
+            // to release its lock and then reacquire it
+            // before jumping back to us.
+            p->state = RUNNING;
+            p->ticks++;
+            c->proc = p;
+            swtch(&c->context, &p->context);
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+            break;
+          }
+          else {
+            startingRange += p->tickets;
+          }
+        }
+        release(&p->lock);
+      }
     }
   }
-}
+#elif defined(STRIDE)
+  void
+  scheduler(void)
+  {
+    
+    struct proc *p;
+    struct cpu *c = mycpu();
+    
+    c->proc = 0;
+    for(;;){
+      // Avoid deadlock by ensuring that devices can interrupt.
+      intr_on();
+
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          p->state = RUNNING;
+          p->ticks++;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+        release(&p->lock);
+      }
+    }
+  }
+#else
+  void
+  scheduler(void)
+  {
+    
+    struct proc *p;
+    struct cpu *c = mycpu();
+    
+    c->proc = 0;
+    for(;;){
+      // Avoid deadlock by ensuring that devices can interrupt.
+      intr_on();
+
+      for(p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if(p->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          p->state = RUNNING;
+          p->ticks++;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
+        release(&p->lock);
+      }
+    }
+  }
+#endif
 
 // Print: `pid(name): tickets: xxx, ticks: yy` for each process
 // Ticks is the number of times the proc. was scheduled to run
