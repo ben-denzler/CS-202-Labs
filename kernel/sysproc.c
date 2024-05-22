@@ -105,3 +105,9 @@ sys_procinfo(void)
   argaddr(0, &n);
   return procinfo((struct pinfo *)n);
 }
+
+uint64
+sys_sched_statistics(void)
+{
+  return sched_statistics();
+}

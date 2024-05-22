@@ -125,6 +125,8 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->syscall_count = 0;
+  p->tickets = 10000;
+  p->ticks = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -460,6 +462,7 @@ scheduler(void)
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
+        p->ticks++;
         c->proc = p;
         swtch(&c->context, &p->context);
 
@@ -470,6 +473,24 @@ scheduler(void)
       release(&p->lock);
     }
   }
+}
+
+// Print: `pid(name): tickets: xxx, ticks: yy` for each process
+// Ticks is the number of times the proc. was scheduled to run
+int
+sched_statistics(void)
+{
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++) {
+    if (p->state != UNUSED) {
+      int pid = p->pid;
+      int tickets = p->tickets;
+      int ticks = p->ticks;
+      printf("%d(%s): tickets: %d, ticks: %d\n",
+              pid, p->name, tickets, ticks);
+      }
+    }
+  return 0;
 }
 
 // Switch to scheduler.  Must hold only p->lock
