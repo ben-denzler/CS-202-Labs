@@ -126,6 +126,8 @@ found:
   p->state = USED;
   p->syscall_count = 0;
   p->tickets = 10000;
+  p->stride = 10000 / p->tickets;
+  p->pass = 10000 / p->tickets;
   p->ticks = 0;
 
   // Allocate a trapframe page.
@@ -472,6 +474,7 @@ unsigned short rand() {
         if(p->state == RUNNABLE) {
           totalTickets += p->tickets;
         }
+        release(&p->lock);
       }
 
       // Choose a random ticket to run, range: 0 to totalTickets
@@ -494,6 +497,7 @@ unsigned short rand() {
             // Process is done running for now.
             // It should have changed its p->state before coming back.
             c->proc = 0;
+            release(&p->lock);
             break;
           }
           else {
@@ -504,12 +508,14 @@ unsigned short rand() {
       }
     }
   }
+
 #elif defined(STRIDE)
   void
   scheduler(void)
   {
     
     struct proc *p;
+    struct proc *minp = 0;
     struct cpu *c = mycpu();
     
     c->proc = 0;
@@ -517,22 +523,52 @@ unsigned short rand() {
       // Avoid deadlock by ensuring that devices can interrupt.
       intr_on();
 
+      // Find first runnable process for comparison
       for(p = proc; p < &proc[NPROC]; p++) {
         acquire(&p->lock);
         if(p->state == RUNNABLE) {
-          // Switch to chosen process.  It is the process's job
-          // to release its lock and then reacquire it
-          // before jumping back to us.
-          p->state = RUNNING;
-          p->ticks++;
-          c->proc = p;
-          swtch(&c->context, &p->context);
-
-          // Process is done running for now.
-          // It should have changed its p->state before coming back.
-          c->proc = 0;
+          minp = p;
+          release(&p->lock);
+          break;
         }
         release(&p->lock);
+      }
+
+      // Find process with minimum pass
+      if (minp) {
+        acquire(&minp->lock);
+        for(p = proc; p < &proc[NPROC]; p++) {
+          if (minp != p) {
+            int alreadyReleasedP = 0;
+            acquire(&p->lock);
+            if(p->state == RUNNABLE) {
+              if (p->pass < minp->pass) {
+                release(&minp->lock);
+                minp = p;
+                release(&p->lock);
+                alreadyReleasedP = 1;
+                acquire(&minp->lock);
+              }
+            }
+            if(!alreadyReleasedP) {
+              release(&p->lock);
+            }
+          }
+        }
+
+        // Switch to chosen process.  It is the process's job
+        // to release its lock and then reacquire it
+        // before jumping back to us.
+        minp->state = RUNNING;
+        minp->ticks++;
+        c->proc = minp;
+        swtch(&c->context, &minp->context);
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+        minp->pass += minp->stride;
+        release(&minp->lock);
       }
     }
   }
@@ -598,6 +634,7 @@ sched_tickets(int ticketVal)
   else {
     p->tickets = 10000;
   }
+  p->stride = 10000 / p->tickets;
   return 0;
 }
 

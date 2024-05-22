@@ -95,6 +95,10 @@ struct proc {
   int tickets;                 // # tickets for scheduling
   int ticks;                   // # times scheduled to run
 
+  // For Stride Scheduler
+  int stride;
+  int pass;
+
   // p->lock must be held when using these:
   enum procstate state;        // Process state
   void *chan;                  // If non-zero, sleeping on chan
