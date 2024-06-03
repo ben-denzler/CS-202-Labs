@@ -123,6 +123,8 @@ allocproc(void)
 
 found:
   p->pid = allocpid();
+  p->thread_id = 0;       // Parent process is ID 0
+  p->next_thread_id = 1;  // First child is ID 1
   p->state = USED;
   p->syscall_count = 0;
   p->tickets = 5000;
@@ -328,6 +330,124 @@ fork(void)
   release(&np->lock);
 
   return pid;
+}
+
+// Creates a child thread using parent thread
+int 
+clone(void *stack)
+{
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
+
+  // Allocate process.
+  if((np = allocproc_thread(p)) == 0){
+    return -1;
+  }
+
+  // Copy user memory from parent to child.
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    freeproc(np);
+    release(&np->lock);
+    return -1;
+  }
+  np->sz = p->sz;
+
+  // copy saved user registers.
+  *(np->trapframe) = *(p->trapframe);
+
+  // Set child's user stack pointer to `stack`
+  if (!stack) return -1;
+  np->trapframe->sp = stack;
+
+  // Cause fork to return 0 in the child.
+  np->trapframe->a0 = 0;
+
+  // increment reference counts on open file descriptors.
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = idup(p->cwd);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+
+  release(&np->lock);
+
+  acquire(&wait_lock);
+  np->parent = p;
+  release(&wait_lock);
+
+  acquire(&np->lock);
+  np->state = RUNNABLE;
+  release(&np->lock);
+
+  return pid;
+}
+
+// Look in the process table for an UNUSED proc.
+// If found, initialize state required to run in the kernel,
+// and return with p->lock held.
+// If there are no free procs, or a memory allocation fails, return 0.
+static struct proc*
+allocproc_thread(struct proc* parent)
+{
+  struct proc *p;
+
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state == UNUSED) {
+      goto found;
+    } else {
+      release(&p->lock);
+    }
+  }
+  return 0;
+
+found:
+  p->pid = allocpid();
+  p->thread_id = parent->next_thread_id;
+  p->next_thread_id = 0;
+  parent->next_thread_id += 1;
+  p->state = USED;
+  p->syscall_count = 0;
+  p->tickets = 5000;
+  p->stride = 10000 / p->tickets;
+  p->pass = 10000 / p->tickets;
+  p->ticks = 0;
+
+  // A child thread still needs a separate trapframe
+  // Allocate a trapframe page.
+  if((p->trapframe = (struct trapframe *)kalloc()) == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  // A child thread should share the same page table as parent
+  // An empty user page table.
+  p->pagetable = parent->pagetable;
+  if(p->pagetable == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  // map the trapframe page just below the trampoline page, for
+  // trampoline.S.
+  if (p->thread_id > 0) {
+    mappages(p->pagetable, TRAPFRAME - PGSIZE * p->thread_id, PGSIZE,
+              (uint64)(p->trapframe), PTE_R | PTE_W);
+  }
+
+  // Set up new context to start executing at forkret,
+  // which returns to user space.
+  memset(&p->context, 0, sizeof(p->context));
+  p->context.ra = (uint64)forkret;
+  p->context.sp = p->kstack + PGSIZE;
+
+  return p;
 }
 
 // Pass p's abandoned children to init.

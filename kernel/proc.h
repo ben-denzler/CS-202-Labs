@@ -91,6 +91,9 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 struct proc {
   struct spinlock lock;
 
+  int thread_id;               // for clone(), tracks thread ID
+  int next_thread_id;          // Used for clone()
+
   int syscall_count;           // # of system calls by this process
   int tickets;                 // # tickets for scheduling
   int ticks;                   // # times scheduled to run
