@@ -6,7 +6,7 @@
 #include "user.h"
 
 struct lock_t {
-    uint64 locked;
+    uint locked;
 };
 
 int thread_create(void *(start_routine)(void *), void *arg);
