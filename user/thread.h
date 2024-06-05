@@ -1,10 +1,9 @@
 #include "kernel/types.h"
 #include "kernel/riscv.h"  // Defines PGSIZE
 #include "kernel/param.h"
-#include "kernel/memlayout.h"
 #include "kernel/spinlock.h"
 #include "kernel/proc.h"
-#include "kernel/defs.h"
+#include "user.h"
 
 struct lock_t {
     uint64 locked;

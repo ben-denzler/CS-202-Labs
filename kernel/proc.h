@@ -1,3 +1,5 @@
+int clone(void *stack);
+
 struct pinfo {
   int ppid;
   int syscall_count;
