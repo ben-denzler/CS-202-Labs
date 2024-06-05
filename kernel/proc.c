@@ -410,12 +410,8 @@ clone(void *stack)
     return -1;
   }
 
-  // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
-    freeproc(np);
-    release(&np->lock);
-    return -1;
-  }
+  // No need to copy user memory from parent to child
+  // allocproc_thread() already set child pagetable to parent's
   np->sz = p->sz;
 
   // copy saved user registers.
