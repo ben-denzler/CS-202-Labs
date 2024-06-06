@@ -353,7 +353,7 @@ allocproc_thread(struct proc* parent)
   return 0;
 
 found:
-  p->pid = allocpid();
+  p->pid = parent->pid;
   p->thread_id = parent->next_thread_id;
   p->next_thread_id = 0;
   parent->next_thread_id += 1;
