@@ -165,7 +165,7 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
-  if(p->pagetable) {
+  if(p->pagetable && p->thread_id == 0) {
       proc_freepagetable(p->pagetable, p->sz);
   }
   p->pagetable = 0;
