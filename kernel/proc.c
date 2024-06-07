@@ -165,11 +165,11 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
-  if(p->pagetable && p->thread_id == 0) {
+  if(p->pagetable) {
       proc_freepagetable(p->pagetable, p->sz);
-      p->pagetable = 0;
-      p->sz = 0;
   }
+  p->pagetable = 0;
+  p->sz = 0;
   p->pid = 0;
   p->parent = 0;
   p->name[0] = 0;
@@ -373,7 +373,6 @@ found:
   }
 
   // A child thread should share the same page table as parent
-  // An empty user page table.
   p->pagetable = parent->pagetable;
   if(p->pagetable == 0){
     freeproc(p);
